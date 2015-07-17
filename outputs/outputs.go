@@ -19,6 +19,7 @@ type MothershipConfig struct {
 	Path               string
 	Db                 int
 	Db_topology        int
+	Topic              string
 	Timeout            int
 	Reconnect_interval int
 	Filename           string
@@ -54,6 +55,7 @@ const (
 	RedisOutput
 	ElasticsearchOutput
 	FileOutput
+	KafkaOutput
 )
 
 // Output names
@@ -62,6 +64,7 @@ var OutputNames = []string{
 	"redis",
 	"elasticsearch",
 	"file",
+	"kafka",
 }
 
 func (o OutputPlugin) String() string {
