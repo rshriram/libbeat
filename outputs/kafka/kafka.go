@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+//	"log"
+//	"os"
 
 	"github.com/elastic/libbeat/common"
 	"github.com/elastic/libbeat/logp"
@@ -66,6 +68,7 @@ func (out *KafkaOutput) Init(config outputs.MothershipConfig, topology_expire in
 		out.ReconnectInterval = time.Duration(config.Reconnect_interval) * time.Second
 	}
 
+	//sarama.Logger = log.New(os.Stdout, "[KafkaOutput]", log.LstdFlags)
 	logp.Info("[KafkaOutput] Using Kafka brokers %s", config.Host)
 	logp.Info("[KafkaOutput] Kafka connection timeout %s", out.Timeout)
 	logp.Info("[KafkaOutput] Kafka reconnect interval %s", out.ReconnectInterval)
@@ -86,6 +89,7 @@ func (out *KafkaOutput) newProducer() (sarama.AsyncProducer, error) {
 	config.Producer.RequiredAcks = sarama.WaitForLocal // Only wait for the leader to ack
 	config.Producer.Compression = sarama.CompressionSnappy   // Compress messages
 	config.Producer.Flush.Frequency =  out.FlushInterval
+	config.Producer.Return.Errors = true
 	config.Net.DialTimeout = out.Timeout
 	config.Net.ReadTimeout = out.Timeout
 	config.Net.WriteTimeout = out.Timeout
@@ -118,6 +122,7 @@ func (out *KafkaOutput) SendMessagesGoroutine() {
 
 	for {
 		select {
+
 		case queueMsg := <-out.sendingQueue:
 
 			if !out.connected {
@@ -131,18 +136,18 @@ func (out *KafkaOutput) SendMessagesGoroutine() {
 				Key: nil,
 				Value: &queueMsg,
 			}
-			//SHRIRAM: NEED TO FIGURE OUT HOW TO DETECT ERRORS
-			// if err != nil {
-			// 	logp.Err("Fail to publish event to KAFKA: %s", err)
-			// 	out.connected = false
-			// 	go out.Reconnect()
-			// }
+
+ 		case err := <- out.Producer.Errors():
+			logp.Err("Failed to publish event to kafka: %s", err)
+			out.connected = false
+			out.Close()
+			go out.Reconnect()
+			return
 		}
 	}
 }
 
 func (out *KafkaOutput) Reconnect() {
-
 	for {
 		err := out.Connect()
 		if err != nil {
@@ -155,11 +160,12 @@ func (out *KafkaOutput) Reconnect() {
 }
 
 func (out *KafkaOutput) GetNameByIP(ip string) string {
+	//NOT SUPPORTED
 	return ""
 }
 
 func (out *KafkaOutput) PublishIPs(name string, localAddrs []string) error {
-
+	//NOT SUPPORTED
 	return nil
 }
 
@@ -167,7 +173,7 @@ func (out *KafkaOutput) PublishEvent(ts time.Time, event common.MapStr) error {
 
 	json_event, err := json.Marshal(event)
 	if err != nil {
-		logp.Err("Fail to convert the event to JSON: %s", err)
+		logp.Err("Failed to convert the event to JSON: %s", err)
 		return err
 	}
 
