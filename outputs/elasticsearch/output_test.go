@@ -122,6 +122,12 @@ func TestOneEvent(t *testing.T) {
 
 	index := fmt.Sprintf("%s-%d.%02d.%02d", elasticsearchOutput.Index, ts.Year(), ts.Month(), ts.Day())
 	logp.Debug("output_elasticsearch", "index = %s", index)
+	elasticsearchOutput.Conn.CreateIndex(index, common.MapStr{
+		"settings": common.MapStr{
+			"number_of_shards":   1,
+			"number_of_replicas": 0,
+		},
+	})
 
 	err := elasticsearchOutput.PublishEvent(ts, event)
 	if err != nil {
@@ -187,6 +193,12 @@ func TestEvents(t *testing.T) {
 	event["redis"] = r
 
 	index := fmt.Sprintf("%s-%d.%02d.%02d", elasticsearchOutput.Index, ts.Year(), ts.Month(), ts.Day())
+	elasticsearchOutput.Conn.CreateIndex(index, common.MapStr{
+		"settings": common.MapStr{
+			"number_of_shards":   1,
+			"number_of_replicas": 0,
+		},
+	})
 
 	err := elasticsearchOutput.PublishEvent(ts, event)
 	if err != nil {
@@ -234,6 +246,13 @@ func test_bulk_with_params(t *testing.T, elasticsearchOutput ElasticsearchOutput
 	ts := time.Now()
 	index := fmt.Sprintf("%s-%d.%02d.%02d", elasticsearchOutput.Index, ts.Year(), ts.Month(), ts.Day())
 
+	elasticsearchOutput.Conn.CreateIndex(index, common.MapStr{
+		"settings": common.MapStr{
+			"number_of_shards":   1,
+			"number_of_replicas": 0,
+		},
+	})
+
 	for i := 0; i < 10; i++ {
 
 		event := common.MapStr{}
@@ -258,7 +277,7 @@ func test_bulk_with_params(t *testing.T, elasticsearchOutput ElasticsearchOutput
 	}
 
 	// give control to the other goroutine, otherwise the refresh happens
-	// before the refresh. We should find a better solution for this.
+	// before the index. We should find a better solution for this.
 	time.Sleep(200 * time.Millisecond)
 
 	elasticsearchOutput.Conn.Refresh(index)
