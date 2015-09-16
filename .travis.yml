@@ -1,0 +1,27 @@
+language: go
+
+go:
+    - 1.4
+
+sudo: false
+
+services:
+    - redis-server
+    - elasticsearch
+
+addonsbefore_install:
+    - ln -s $TRAVIS_BUILD_DIR $HOME/gopath/src/libbeat
+
+before_script:
+    - sleep 10
+
+install:
+    - make deps
+    - make
+
+script: make testlong
+
+notifications:
+    email:
+        - tudor@elastic.co
+        - monica@elastic.co
